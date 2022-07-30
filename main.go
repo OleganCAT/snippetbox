@@ -3,8 +3,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 //Создается функция-обработчик домашней страницы "home"
@@ -17,9 +19,14 @@ func home(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Привет из Snippetbox"))
 }
 
-//Создается функция-обработчик для страницы "showSnippet"
+//Создается функция-обработчик для страницы "showSnippet которая извлекает параметр id из URL"
 func showSnippet(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Выводи заметки из Snippetbox"))
+	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+	fmt.Fprintf(w, "Отображение выбранной заметки с ID %d...", id)
 }
 
 //Создается функция-обработчик для страницы "creatSnippet" которая отвечает только на POST запросы
