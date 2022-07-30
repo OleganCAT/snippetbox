@@ -17,13 +17,18 @@ func home(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Привет из Snippetbox"))
 }
 
-//Создается функция-обработчик домашней страницы "showSnippet"
+//Создается функция-обработчик для страницы "showSnippet"
 func showSnippet(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Выводи заметки из Snippetbox"))
 }
 
-//Создается функция-обработчик домашней страницы "creatSnippet"
+//Создается функция-обработчик для страницы "creatSnippet" которая отвечает только на POST запросы
 func creatSnippet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "Метод запрещён", 405)
+		return
+	}
 	w.Write([]byte("Создаёт заметки в  Snippetbox"))
 }
 
