@@ -46,7 +46,7 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 }
 
 //Создается функция-обработчик для страницы "creatSnippet" которая отвечает только на POST запросы
-func creatSnippet(w http.ResponseWriter, r *http.Request) {
+func createSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
 		http.Error(w, "Метод запрещён", 405)
