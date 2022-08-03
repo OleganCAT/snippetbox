@@ -3,22 +3,26 @@ package main
 import (
 	"database/sql"
 	"flag"
-	_ "github.com/go-sql-driver/mysql"
-	"golangify.com/snippetbox/pkg/models/mysql"
+	"html/template" // Новый импорт
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+
+	_ "github.com/go-sql-driver/mysql"
+	"golangify.com/snippetbox/pkg/models/mysql"
 )
 
+// Добавляем поле templateCache в структуру зависимостей. Это позволит
+// получить доступ к кэшу во всех обработчиках.
 type application struct {
-	errorLog *log.Logger
-	infoLog  *log.Logger
-	snippets *mysql.SnippetModel
+	errorLog      *log.Logger
+	infoLog       *log.Logger
+	snippets      *mysql.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
-	addr := flag.String("addr", "127.0.0.1:4000", "Сетевой адрес HTTP")
+	addr := flag.String("addr", ":4000", "Сетевой адрес веб-сервера")
 	dsn := flag.String("dsn", "web:nhf[!)!hfp@/snippetbox?parseTime=true", "Название MySQL источника данных")
 	flag.Parse()
 
@@ -31,10 +35,19 @@ func main() {
 	}
 	defer db.Close()
 
+	// Инициализируем новый кэш шаблона...
+	templateCache, err := newTemplateCache("./ui/html/")
+	if err != nil {
+		errorLog.Fatal(err)
+	}
+
+	// И добавляем его в зависимостях нашего
+	// веб-приложения.
 	app := &application{
-		errorLog: errorLog,
-		infoLog:  infoLog,
-		snippets: &mysql.SnippetModel{DB: db},
+		errorLog:      errorLog,
+		infoLog:       infoLog,
+		snippets:      &mysql.SnippetModel{DB: db},
+		templateCache: templateCache,
 	}
 
 	srv := &http.Server{
@@ -43,7 +56,7 @@ func main() {
 		Handler:  app.routes(),
 	}
 
-	infoLog.Printf("Запуск сервера на %s", *addr)
+	infoLog.Printf("Запуск сервера на http://127.0.0.1%s", *addr)
 	err = srv.ListenAndServe()
 	errorLog.Fatal(err)
 }
@@ -57,31 +70,4 @@ func openDB(dsn string) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
-}
-
-// Проверка страницы на вывод каталогов которые должны быть закрыты
-type neuteredFileSystem struct {
-	fs http.FileSystem
-}
-
-func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
-	f, err := nfs.fs.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := f.Stat()
-	if s.IsDir() {
-		index := filepath.Join(path, "index.html")
-		if _, err := nfs.fs.Open(index); err != nil {
-			closeErr := f.Close()
-			if closeErr != nil {
-				return nil, closeErr
-			}
-
-			return nil, err
-		}
-	}
-
-	return f, nil
 }
